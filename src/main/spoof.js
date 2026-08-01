@@ -92,6 +92,22 @@ async function applyToContents (contents, identity) {
   }
 
   await applyDeviceMetrics(contents, identity)
+  await applyLocale(contents, identity)
+}
+
+// A machine in UTC claiming an Asia/Jakarta user agent is a contradiction that
+// costs nothing to check - Date and Intl both give it away.
+async function applyLocale (contents, identity) {
+  if (identity.timezone && identity.timezone !== 'auto') {
+    await send(contents, 'Emulation.setTimezoneOverride', { timezoneId: identity.timezone })
+  } else {
+    await send(contents, 'Emulation.setTimezoneOverride', { timezoneId: '' })
+  }
+
+  const locale = (identity.acceptLanguage || '').split(',')[0].split(';')[0].trim()
+  if (locale) {
+    await send(contents, 'Emulation.setLocaleOverride', { locale })
+  }
 }
 
 async function applyDeviceMetrics (contents, identity) {
@@ -113,6 +129,21 @@ async function applyDeviceMetrics (contents, identity) {
     enabled: !!device.touch,
     maxTouchPoints: identity.meta.maxTouchPoints || 5
   })
+}
+
+// A fresh webContents has no CDP target, and applying the identity from
+// did-start-navigation is a race: the commands are async, so the timezone or
+// device metrics can land after the document has already read them. Loading
+// about:blank first creates the target for nothing, which lets everything be
+// in place before the real navigation starts.
+async function primeContents (contents, identity) {
+  try {
+    await contents.loadURL('about:blank')
+  } catch {
+    return // destroyed or superseded, the navigation hook will cover it
+  }
+  if (contents.isDestroyed()) return
+  await applyToContents(contents, identity)
 }
 
 // Client hints Chromium may still attach on its own.
@@ -190,6 +221,7 @@ function headerMutator (getIdentity) {
 function pageShimConfig (identity) {
   return {
     ua: identity.ua,
+    chromiumBased: identity.meta.supportsClientHints,
     platform: identity.meta.navigatorPlatform,
     vendor: identity.meta.vendor,
     maxTouchPoints: identity.meta.maxTouchPoints,
@@ -219,6 +251,8 @@ function pageShimConfig (identity) {
 module.exports = {
   applyToContents,
   applyDeviceMetrics,
+  applyLocale,
+  primeContents,
   forget,
   headerMutator,
   hintHeadersFor,
