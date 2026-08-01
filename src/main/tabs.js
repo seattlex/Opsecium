@@ -33,6 +33,7 @@ class Tab {
     this.favicon = ''
     this.loading = false
     this.error = ''
+    this.priming = false
 
     this.contents.setWindowOpenHandler(({ url: target, disposition }) => {
       if (disposition === 'new-window' || disposition === 'foreground-tab' || disposition === 'background-tab') {
@@ -43,21 +44,47 @@ class Tab {
     })
 
     this.wire()
-    // The identity goes on from did-start-navigation rather than here - there
-    // is no CDP target to talk to until a load actually starts.
-    if (url) this.contents.loadURL(url)
+    if (url) this.open(url)
+  }
+
+  // The identity has to be in place before the first real navigation, so the
+  // tab spends a moment on about:blank getting itself sorted out first.
+  open (url) {
+    this.priming = true
+    spoof.primeContents(this.contents, this.manager.getIdentity())
+      .catch(() => {})
+      .then(() => {
+        this.priming = false
+        if (this.contents.isDestroyed()) return
+        // clear() keeps the current entry, so this has to happen once the
+        // real page is the current one - otherwise Back leads to about:blank
+        this.contents.once('did-stop-loading', () => {
+          try { this.contents.navigationHistory.clear() } catch { /* nothing to clear */ }
+          this.manager.broadcast()
+        })
+        this.contents.loadURL(url)
+      })
   }
 
   wire () {
     const push = () => this.manager.broadcast()
     const c = this.contents
 
-    c.on('page-title-updated', (_e, title) => { this.title = title; push() })
+    // about:blank during priming is an implementation detail, so none of it
+    // reaches the address bar or the tab title
+    const settling = () => this.priming || c.getURL() === 'about:blank'
+
+    c.on('page-title-updated', (_e, title) => { if (!settling()) { this.title = title; push() } })
     c.on('page-favicon-updated', (_e, icons) => { this.favicon = icons[0] || ''; push() })
-    c.on('did-start-loading', () => { this.loading = true; this.error = ''; push() })
-    c.on('did-stop-loading', () => { this.loading = false; this.url = c.getURL(); push() })
-    c.on('did-navigate', (_e, url) => { this.url = url; push() })
-    c.on('did-navigate-in-page', (_e, url) => { this.url = url; push() })
+    c.on('did-start-loading', () => { if (!settling()) { this.loading = true; this.error = ''; push() } })
+    c.on('did-stop-loading', () => {
+      if (settling()) return
+      this.loading = false
+      this.url = c.getURL()
+      push()
+    })
+    c.on('did-navigate', (_e, url) => { if (!settling()) { this.url = url; push() } })
+    c.on('did-navigate-in-page', (_e, url) => { if (!settling()) { this.url = url; push() } })
     c.on('did-fail-load', (_e, code, description, validatedURL, isMainFrame) => {
       if (!isMainFrame || code === -3) return // -3 is an aborted load, normal
       this.error = `${description} (${code})`
