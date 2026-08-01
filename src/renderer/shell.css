@@ -1,0 +1,224 @@
+:root {
+  --bg: #12141a;
+  --bg-soft: #1a1d26;
+  --line: #272b38;
+  --text: #dfe3ee;
+  --muted: #8b93a8;
+  --accent: #5b8cff;
+  --ok: #3ecf8e;
+  --warn: #f0a742;
+  --bad: #ef5f6b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+/* tab strip */
+
+.tabstrip {
+  display: flex;
+  align-items: flex-end;
+  height: 36px;
+  padding: 0 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.tab {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 60px;
+  max-width: 220px;
+  flex: 1 1 180px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  overflow: hidden;
+}
+
+.tab:hover { background: #191c25; }
+
+.tab.active {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.tab .favicon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 3px;
+}
+
+.tab .title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab .close {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  line-height: 15px;
+  text-align: center;
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.tab .close:hover { background: #2c303d; color: var(--text); }
+
+.tab .spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.newtab {
+  -webkit-app-region: no-drag;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: default;
+}
+
+.newtab:hover { background: var(--bg-soft); color: var(--text); }
+
+/* toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 47px;
+  padding: 0 8px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav { display: flex; gap: 2px; }
+
+.nav button, .icon {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  cursor: default;
+}
+
+.nav button:hover, .icon:hover { background: #242938; }
+.nav button:disabled { color: #4a5064; }
+
+.omnibox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  height: 31px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #14161e;
+}
+
+.omnibox:focus-within { border-color: var(--accent); }
+
+.lock { font-size: 9px; color: var(--ok); }
+.lock.insecure { color: var(--warn); }
+
+#address {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  user-select: text;
+}
+
+#address::placeholder { color: #626a80; }
+
+.badges { display: flex; align-items: center; gap: 6px; }
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  max-width: 190px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #14161e;
+  color: var(--text);
+  font: inherit;
+  cursor: default;
+  overflow: hidden;
+}
+
+.badge:hover { border-color: #3a4054; }
+
+.badge-label {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .06em;
+}
+
+.badge-value {
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.dot.on { background: var(--ok); }
+.dot.busy { background: var(--warn); }
+.dot.off { background: var(--muted); }
+.dot.error { background: var(--bad); }
+
+.badge.blocking { border-color: var(--bad); }

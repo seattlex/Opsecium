@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:;">
+  <title>Opsecium</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <div class="tabstrip" id="tabstrip">
+    <div class="tabs" id="tabs"></div>
+    <button class="newtab" id="newtab" title="New tab (Ctrl+T)">+</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="nav">
+      <button id="back" title="Back">&#8592;</button>
+      <button id="forward" title="Forward">&#8594;</button>
+      <button id="reload" title="Reload">&#8635;</button>
+      <button id="home" title="Home">&#8962;</button>
+    </div>
+
+    <div class="omnibox">
+      <span class="lock" id="lock">&#9679;</span>
+      <input id="address" type="text" spellcheck="false" autocomplete="off"
+             placeholder="Search DuckDuckGo or type an address">
+    </div>
+
+    <div class="badges">
+      <button class="badge ua" id="ua-badge" title="Active user agent - click for settings">
+        <span class="badge-label">UA</span>
+        <span class="badge-value" id="ua-value">default</span>
+      </button>
+      <button class="badge vpn" id="vpn-badge" title="VPN status - click to connect or disconnect">
+        <span class="dot" id="vpn-dot"></span>
+        <span class="badge-value" id="vpn-value">off</span>
+      </button>
+      <button class="icon" id="settings" title="Settings (Ctrl+,)">&#9881;</button>
+    </div>
+  </div>
+
+  <script src="shell.js"></script>
+</body>
+</html>

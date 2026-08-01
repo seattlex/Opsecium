@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Blocked by the kill switch</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #12141a;
+      color: #8b93a8;
+      font: 13px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 0 40px;
+    }
+    .mark {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #ef5f6b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ef5f6b;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    h1 { margin: 0; color: #dfe3ee; font-size: 17px; font-weight: 600; }
+    p { margin: 0; max-width: 420px; }
+  </style>
+</head>
+<body>
+  <div class="mark">!</div>
+  <h1>Traffic is being held</h1>
+  <p>
+    The kill switch is on and the tunnel is not up, so nothing was sent.
+    Connect the VPN from the badge in the toolbar, or turn the kill switch
+    off in settings if you meant to browse without it.
+  </p>
+</body>
+</html>
