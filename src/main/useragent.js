@@ -214,7 +214,8 @@ function resolve (settings) {
     device: settings.get('useragent.emulateDevice') ? device : null,
     spoofClientHints: !!settings.get('useragent.spoofClientHints'),
     acceptLanguage: settings.get('useragent.acceptLanguage') || 'en-US,en;q=0.9',
-    timezone: settings.get('privacy.timezone') || 'auto'
+    timezone: settings.get('privacy.timezone') || 'auto',
+    doNotTrack: !!settings.get('privacy.doNotTrack')
   }
 }
 

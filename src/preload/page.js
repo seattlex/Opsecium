@@ -43,6 +43,11 @@ function identityShim (cfg) {
   define(navigator, 'language', cfg.language)
   define(navigator, 'languages', Object.freeze(cfg.languages.slice()))
 
+  if (cfg.doNotTrack) {
+    define(navigator, 'doNotTrack', '1')
+    define(navigator, 'globalPrivacyControl', true)
+  }
+
   if (cfg.uaData) {
     const data = {
       brands: cfg.uaData.brands.map((b) => ({ brand: b.brand, version: b.version })),

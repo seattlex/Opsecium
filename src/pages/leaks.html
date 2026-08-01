@@ -214,25 +214,26 @@
       add('network', 'WebRTC', 'unavailable', 'good', 'no leak')
     } else {
       const found = new Set()
+      let reported = false
+      const report = (note) => {
+        if (reported) return
+        reported = true
+        const hosts = [...found].filter((c) => !c.endsWith('.local'))
+        add('network', 'WebRTC candidates', hosts.length ? hosts.join(', ') : note,
+          hosts.length ? 'bad' : 'good', hosts.length ? 'leaking' : 'no leak')
+      }
       try {
         const pc = new rtc({ iceServers: [] })
         pc.createDataChannel('x')
         pc.onicecandidate = (event) => {
-          if (!event.candidate) {
-            const hosts = [...found].filter((c) => !c.endsWith('.local'))
-            add('network', 'WebRTC candidates', hosts.length ? hosts.join(', ') : 'none exposed',
-              hosts.length ? 'bad' : 'good', hosts.length ? 'leaking' : 'no leak')
-            return
-          }
+          if (!event.candidate) { report('none exposed'); return }
           const match = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{8}-[a-f0-9-]+\.local)/i.exec(event.candidate.candidate)
           if (match) found.add(match[1])
         }
         pc.createOffer().then((offer) => pc.setLocalDescription(offer))
-        setTimeout(() => {
-          if (!document.querySelector('#network .row:nth-child(2)')) {
-            add('network', 'WebRTC candidates', 'none gathered', 'good', 'no leak')
-          }
-        }, 2500)
+        // gathering can simply never finish when udp is blocked, which is the
+        // outcome we want - say so rather than leaving the row missing
+        setTimeout(() => report('none gathered'), 2500)
       } catch (err) {
         add('network', 'WebRTC', 'blocked', 'good', 'no leak')
       }

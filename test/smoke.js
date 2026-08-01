@@ -73,6 +73,8 @@ const PROBE = `(() => {
     cores: navigator.hardwareConcurrency,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     uaData: navigator.userAgentData ? navigator.userAgentData.toJSON() : null,
+    dnt: navigator.doNotTrack,
+    gpc: navigator.globalPrivacyControl,
     canvasA: digest(draw()),
     canvasB: digest(draw()),
     renderer,
@@ -153,6 +155,11 @@ app.whenReady().then(async () => {
     assert.strictEqual(page.touch, 5)
     assert.strictEqual(page.uaData.platform, 'Android')
     assert.strictEqual(page.uaData.mobile, true)
+  })
+
+  check('navigator agrees with the privacy headers', () => {
+    assert.strictEqual(page.dnt, '1', 'a DNT header without navigator.doNotTrack is a tell')
+    assert.strictEqual(page.gpc, true)
   })
 
   check('the timezone override lands', () => {

@@ -225,6 +225,9 @@ function pageShimConfig (identity) {
     platform: identity.meta.navigatorPlatform,
     vendor: identity.meta.vendor,
     maxTouchPoints: identity.meta.maxTouchPoints,
+    // the headers say DNT and GPC, so navigator has to say the same. a header
+    // without the matching property is its own small tell.
+    doNotTrack: !!identity.doNotTrack,
     language: identity.acceptLanguage.split(',')[0] || 'en-US',
     languages: identity.acceptLanguage.split(',').map((l) => l.split(';')[0].trim()).filter(Boolean),
     uaData: identity.spoofClientHints && identity.meta.supportsClientHints
