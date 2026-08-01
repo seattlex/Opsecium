@@ -36,4 +36,33 @@ function display (url) {
   return url
 }
 
-module.exports = { normalise, search, display }
+// Loopback has nowhere to be intercepted, and .onion is carried over plain
+// http through the proxy by design - upgrading either one only breaks it.
+const NO_UPGRADE = /^(localhost|127(\.\d+){3}|\[::1\]|0\.0\.0\.0|.+\.onion|.+\.local)$/i
+
+// Returns the https form of an http url, or null when it should be left alone.
+function upgradeToHttps (url) {
+  if (!url || !url.toLowerCase().startsWith('http://')) return null
+  let parsed
+  try {
+    parsed = new URL(url)
+  } catch {
+    return null
+  }
+  if (NO_UPGRADE.test(parsed.hostname)) return null
+  parsed.protocol = 'https:'
+  // an explicit :80 survives the protocol swap and points at the wrong port
+  if (parsed.port === '80') parsed.port = ''
+  return parsed.toString()
+}
+
+function isCrossOrigin (referer, url) {
+  if (!referer) return false
+  try {
+    return new URL(referer).origin !== new URL(url).origin
+  } catch {
+    return false
+  }
+}
+
+module.exports = { normalise, search, display, upgradeToHttps, isCrossOrigin }

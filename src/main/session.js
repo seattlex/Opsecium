@@ -5,6 +5,7 @@ const { pathToFileURL } = require('node:url')
 const { session, protocol, net } = require('electron')
 
 const spoof = require('./spoof')
+const { upgradeToHttps, isCrossOrigin } = require('./urls')
 const { Blocklist } = require('./blocklist')
 
 const PARTITION = 'persist:opsecium'
@@ -85,6 +86,14 @@ function setupSession ({ settings, vpn, getIdentity }) {
       return
     }
 
+    if (settings.get('privacy.httpsOnly')) {
+      const upgraded = upgradeToHttps(details.url)
+      if (upgraded) {
+        callback({ redirectURL: upgraded })
+        return
+      }
+    }
+
     callback({ cancel: false })
   })
 
@@ -96,6 +105,11 @@ function setupSession ({ settings, vpn, getIdentity }) {
     }
     // X-Client-Data is a Chrome build/variations fingerprint sent to Google
     delete headers['X-Client-Data']
+
+    if (settings.get('privacy.stripCrossOriginReferrer') && isCrossOrigin(headers.Referer, details.url)) {
+      delete headers.Referer
+    }
+
     callback({ requestHeaders: headers })
   })
 

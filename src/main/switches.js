@@ -80,6 +80,15 @@ function applyHardeningSwitches (app, settings) {
   if (settings.get('privacy.trimReferrers')) {
     app.commandLine.appendSwitch('enable-features', 'ReducedReferrerGranularity')
   }
+
+  // Encrypted DNS. Without this the resolver still leaks every host you visit
+  // to whoever runs the network, tunnel or no tunnel - though in PIA mode the
+  // daemon is already handling resolution, so leave it blank there.
+  const doh = settings.get('privacy.dohTemplate')
+  if (doh) {
+    app.commandLine.appendSwitch('dns-over-https-mode', 'secure')
+    app.commandLine.appendSwitch('dns-over-https-templates', doh)
+  }
 }
 
 module.exports = { applyHardeningSwitches, DISABLED_FEATURES, SWITCHES }

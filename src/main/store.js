@@ -45,7 +45,18 @@ const DEFAULTS = {
     doNotTrack: true,
     disableHardwareAcceleration: false,
     trimReferrers: true,
-    extraBlockedHosts: []
+    extraBlockedHosts: [],
+    // canvas, audio and text metric noise, per session and per origin
+    resistFingerprinting: true,
+    spoofWebglRenderer: true,
+    // 'auto' keeps the real one, anything else is an IANA zone
+    timezone: 'auto',
+    // upgrade http to https and refuse if that fails
+    httpsOnly: true,
+    // strip the referrer on cross origin requests entirely
+    stripCrossOriginReferrer: true,
+    // '' uses the system resolver, otherwise a DoH template
+    dohTemplate: ''
   }
 }
 
