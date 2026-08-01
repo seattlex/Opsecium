@@ -21,6 +21,15 @@ async function boot () {
   $('version').textContent = `${info.version} · Chromium ${info.chromium}`
   $('blocked-count').textContent = `${info.blocked} requests blocked this session`
 
+  const zones = await api.privacy.timezones().catch(() => [])
+  const zoneSelect = $('p-timezone')
+  for (const zone of zones) {
+    const option = document.createElement('option')
+    option.value = zone
+    option.textContent = zone
+    zoneSelect.append(option)
+  }
+
   const { profiles } = await api.ua.list()
   const select = $('ua-profile')
   for (const profile of profiles) {
@@ -61,6 +70,12 @@ function fill (s) {
   $('p-clear').checked = s.privacy.clearOnExit
   $('p-hwaccel').checked = s.privacy.disableHardwareAcceleration
   $('p-hosts').value = (s.privacy.extraBlockedHosts || []).join('\n')
+  $('p-resist').checked = s.privacy.resistFingerprinting
+  $('p-webgl').checked = s.privacy.spoofWebglRenderer
+  $('p-https').checked = s.privacy.httpsOnly
+  $('p-referrer').checked = s.privacy.stripCrossOriginReferrer
+  $('p-doh').value = s.privacy.dohTemplate
+  $('p-timezone').value = s.privacy.timezone
 
   $('g-home').value = s.general.homepage
   $('g-search').value = s.general.searchEngine
@@ -104,7 +119,13 @@ function collect () {
       doNotTrack: $('p-dnt').checked,
       clearOnExit: $('p-clear').checked,
       disableHardwareAcceleration: $('p-hwaccel').checked,
-      extraBlockedHosts: $('p-hosts').value.split('\n').map((l) => l.trim()).filter(Boolean)
+      extraBlockedHosts: $('p-hosts').value.split('\n').map((l) => l.trim()).filter(Boolean),
+      resistFingerprinting: $('p-resist').checked,
+      spoofWebglRenderer: $('p-webgl').checked,
+      httpsOnly: $('p-https').checked,
+      stripCrossOriginReferrer: $('p-referrer').checked,
+      dohTemplate: $('p-doh').value.trim(),
+      timezone: $('p-timezone').value
     },
     general: {
       homepage: $('g-home').value.trim() || 'opsecium://newtab',
@@ -199,11 +220,12 @@ async function loadRegions () {
 // wiring
 
 for (const id of ['ua-hints', 'ua-device', 'vpn-killswitch', 'vpn-autoconnect', 'p-telemetry',
-  'p-webrtc', 'p-spellcheck', 'p-dnt', 'p-clear', 'p-hwaccel']) {
+  'p-webrtc', 'p-spellcheck', 'p-dnt', 'p-clear', 'p-hwaccel', 'p-resist', 'p-webgl',
+  'p-https', 'p-referrer', 'p-timezone']) {
   $(id).addEventListener('change', save)
 }
 
-for (const id of ['ua-lang', 'pia-binary', 'proxy-url', 'proxy-bypass', 'p-hosts', 'g-home', 'g-search']) {
+for (const id of ['ua-lang', 'pia-binary', 'proxy-url', 'proxy-bypass', 'p-hosts', 'p-doh', 'g-home', 'g-search']) {
   $(id).addEventListener('input', saveSoon)
 }
 
@@ -224,6 +246,14 @@ $('clear-now').onclick = async () => {
   await api.privacy.clear()
   button.textContent = 'Cleared'
   setTimeout(() => { button.textContent = 'Clear browsing data now'; button.disabled = false }, 1500)
+}
+
+$('new-identity').onclick = async () => {
+  const button = $('new-identity')
+  button.disabled = true
+  await api.privacy.newIdentity()
+  button.textContent = 'Done'
+  setTimeout(() => { button.textContent = 'New identity'; button.disabled = false }, 1500)
 }
 
 $('reset').onclick = async () => {

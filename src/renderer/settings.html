@@ -99,11 +99,45 @@
   </section>
 
   <section>
+    <h2>Fingerprinting</h2>
+    <p class="hint">
+      Canvas, audio and text measurements are perturbed with noise that is
+      stable per site and per session, so a site gets one consistent answer
+      rather than a new one on every read.
+    </p>
+
+    <label class="row">
+      <span>Add noise to canvas, audio and text metrics</span>
+      <input type="checkbox" id="p-resist">
+    </label>
+    <label class="row">
+      <span>Report a GPU that fits the profile</span>
+      <input type="checkbox" id="p-webgl">
+    </label>
+    <label class="row">
+      <span>Timezone</span>
+      <select id="p-timezone"><option value="auto">Use the real one</option></select>
+    </label>
+    <div class="row actions">
+      <button id="new-identity">New identity</button>
+      <span class="counter">Rotates the noise seed and clears everything</span>
+    </div>
+  </section>
+
+  <section>
     <h2>Privacy</h2>
 
     <label class="row">
       <span>Block known telemetry and analytics hosts</span>
       <input type="checkbox" id="p-telemetry">
+    </label>
+    <label class="row">
+      <span>HTTPS only &mdash; upgrade insecure requests</span>
+      <input type="checkbox" id="p-https">
+    </label>
+    <label class="row">
+      <span>Strip the referrer on cross site requests</span>
+      <input type="checkbox" id="p-referrer">
     </label>
     <label class="row">
       <span>Stop WebRTC from leaking the local address</span>
@@ -124,6 +158,11 @@
     <label class="row">
       <span>Disable hardware acceleration (needs a restart)</span>
       <input type="checkbox" id="p-hwaccel">
+    </label>
+
+    <label class="row">
+      <span>DNS over HTTPS template (blank uses the system resolver)</span>
+      <input type="text" id="p-doh" spellcheck="false" placeholder="https://dns.quad9.net/dns-query">
     </label>
 
     <label class="row stacked">
