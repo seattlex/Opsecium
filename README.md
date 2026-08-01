@@ -6,6 +6,22 @@ a VPN, and does not talk to anyone you did not ask it to talk to.
 Built on Electron, so the engine is real Chromium - pages render the way they
 render everywhere else. What is different is everything around the engine.
 
+## Getting it
+
+Grab an installer from [releases](https://github.com/seattlex/Opsecium/releases):
+
+| | |
+|---|---|
+| Windows | `Opsecium-<version>-win-x64.exe` installs it, or the portable exe runs with no install |
+| macOS | `Opsecium-<version>-mac-x64.dmg` |
+| Linux | `.AppImage` runs anywhere, `.deb` for Debian and Ubuntu |
+
+Nothing is code signed yet, so Windows shows a SmartScreen warning and macOS
+needs the app allowed through Gatekeeper on first run. Every release carries a
+`SHA256SUMS.txt` built alongside the artifacts.
+
+Or run it from source - see [docs/BUILDING.md](docs/BUILDING.md).
+
 ## Why
 
 Every mainstream browser leaks. Not always maliciously, but constantly: variations
@@ -65,6 +81,33 @@ closed: an error talking to `piactl` counts as "not connected".
 PIA is not bundled - it is proprietary and needs your own subscription. Install
 the client, sign in once, and Opsecium picks it up from there.
 
+## Fingerprinting
+
+A user agent nobody can contradict is only half the job. The values that
+should follow the profile are made to follow it, and the ones that get read as
+a hash are perturbed:
+
+- **WebGL** reports a GPU that fits the platform being claimed. An Android
+  profile says Adreno or Mali, a Windows one says an ANGLE/Direct3D string, and
+  the desktop GPU actually doing the work never appears.
+- **Canvas, audio and text metrics** get noise that is *stable per site and per
+  session*. This part matters: noise that changes on every read is itself a
+  giveaway, because reading the same canvas twice returns the same bytes in
+  every real browser. Two different sites get two different answers and cannot
+  line them up.
+- **Core count and memory** are set to plausible values for the device claimed,
+  so a phone does not report 32 threads.
+- **Timezone and locale** can be pinned, so a machine in UTC does not undo an
+  Asia/Tokyo cover story the moment a page calls `new Date()`.
+- The patched methods still return `[native code]` from `toString()`, which is
+  the first thing a fingerprinting script checks.
+
+**New identity** (`Ctrl+Shift+N`) rotates the noise seed and clears cookies,
+cache and storage in one go. Everything derived above changes with it.
+
+`opsecium://leaks` measures all of it in the page, with no network calls, and
+tells you which pairs are consistent. Run it after switching profiles.
+
 ## Telemetry
 
 Removed rather than turned down.
@@ -82,6 +125,11 @@ Removed rather than turned down.
   settings
 - geolocation, USB, serial, HID, bluetooth and idle detection refused outright
 - cookies, cache and storage cleared on exit by default
+- HTTPS only, upgrading insecure requests and leaving loopback and `.onion`
+  alone because upgrading those only breaks them
+- cross site `Referer` stripped
+- optional DNS over HTTPS, since the resolver otherwise hands over every host
+  you visit regardless of the tunnel
 
 There is no analytics in Opsecium itself, no update check, no crash reporting
 and no remote config. The only network traffic is what you navigate to.
@@ -94,19 +142,16 @@ npm start
 ```
 
 Tests cover the parts worth being sure about - user agent derivation, header
-rewriting, the blocklist and address bar parsing:
+rewriting, fingerprint config, the blocklist and address bar parsing. The
+smoke check boots the browser for real and asserts on what a server receives
+and what the page can read:
 
 ```sh
 npm test
+npm run smoke
 ```
 
-Packaging:
-
-```sh
-npm run dist:linux    # AppImage + deb
-npm run dist:win      # nsis
-npm run dist:mac      # dmg
-```
+Packaging is in [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Keyboard
 
@@ -117,6 +162,7 @@ npm run dist:mac      # dmg
 | `Ctrl+L` | focus address bar |
 | `Ctrl+R` | reload (`Ctrl+Shift+R` ignores cache) |
 | `Ctrl+,` | settings |
+| `Ctrl+Shift+N` | new identity |
 | `F12` | devtools |
 
 ## What this is not

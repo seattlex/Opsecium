@@ -25,7 +25,22 @@ the kill switch off is a deliberate choice in settings.
 **Your real address leaking around a working tunnel.** Mostly handled. WebRTC
 is forced to `disable_non_proxied_udp`, which covers the classic STUN leak
 including from workers. DNS is the VPN daemon's job in PIA mode; in proxy mode
-resolution happens at the proxy for SOCKS5, so prefer SOCKS5 over HTTP.
+resolution happens at the proxy for SOCKS5, so prefer SOCKS5 over HTTP, or set
+a DNS over HTTPS template.
+
+**A profile contradicting itself.** Handled for the surfaces that get checked
+together. WebGL reports a GPU that fits the claimed platform, core count and
+memory are plausible for the claimed device, touch points follow the mobile
+flag, and timezone and locale can be pinned so `new Date()` does not undo the
+user agent. `opsecium://leaks` shows the pairs and flags the ones that
+disagree.
+
+**Being recognised across visits by a hash.** Partly handled. Canvas, audio
+and text metrics carry noise seeded per session and per origin. Two sites get
+different answers, one site gets a consistent answer, and "new identity"
+changes both. The consistency is the point - noise that changes on every read
+is a stronger signal than no noise at all, since no real browser behaves that
+way.
 
 ## What it is not for
 
@@ -34,12 +49,17 @@ circuit, no traffic analysis resistance, and no attempt to make you look like
 everybody else. You get an identity you chose instead of the one your build
 hands out - a different goal.
 
-**Fingerprinting past the user agent.** Canvas, WebGL renderer strings, audio
-context, font enumeration, screen metrics outside the emulated ones, timing
-and hardware concurrency are all untouched. A determined fingerprinter will
-still tell your sessions apart, and a mobile user agent from a machine whose
-WebGL renderer is a desktop GPU is a visible contradiction. Emulating a phone
-convincingly end to end is a much larger project than this one.
+**Fingerprinting in general.** The surfaces above are covered. Plenty are not:
+WebGL rendering output beyond the vendor strings, installed fonts by any route
+other than text width, media capabilities and codec support, WebGPU, speech
+synthesis voices, battery, and timing side channels. A determined
+fingerprinter with a large enough surface will still tell sessions apart, and
+emulating a phone convincingly end to end - where the GPU renders like a
+phone, not merely reports one - is a much larger project than this one.
+
+Noise is also a trade. A site that hashes a canvas to detect fraud may decide
+you are suspicious. That is the cost of not being trackable by the same
+mechanism, and it is one checkbox away if a site you need breaks.
 
 **A hostile local machine.** Settings live in a plain JSON file in the user
 data directory, mode 0600. Anything with your user account can read it. There
@@ -76,7 +96,10 @@ Electron's extension support is partial anyway.
 - Camera, microphone and notification requests are denied rather than prompted.
 - No per site settings, no history UI, no bookmarks yet.
 - The blocklist is a static host list, not a filter engine.
-- Timezone and locale are not spoofed to match the profile, so an Android
-  Jakarta user agent from a machine in UTC is inconsistent.
-- Device emulation resizes the viewport but does not change WebGL or media
-  capabilities, which is the contradiction described above.
+- Timezone has to be set by hand. It is not derived from the VPN exit, so
+  connecting to a Tokyo endpoint does not move the clock on its own.
+- Device emulation resizes the viewport and reports a matching GPU, but the
+  rendering is still done by the real one. Anything that hashes actual WebGL
+  output rather than reading the vendor string sees a desktop.
+- Nothing is code signed, so first run warnings are expected on Windows and
+  macOS.
