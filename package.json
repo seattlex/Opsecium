@@ -5,11 +5,20 @@
   "description": "Chromium browser with full user agent control, VPN integration and the telemetry stripped out",
   "license": "MIT",
   "author": "seattlex <kaspersolo3010@gmail.com>",
+  "homepage": "https://github.com/seattlex/Opsecium",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seattlex/Opsecium.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seattlex/Opsecium/issues"
+  },
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "test": "node --test test/*.test.js",
+    "smoke": "electron test/smoke.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:linux": "electron-builder --linux",
@@ -23,28 +32,80 @@
   "build": {
     "appId": "io.opsecium.browser",
     "productName": "Opsecium",
+    "copyright": "Copyright (c) 2026 seattlex",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "files": [
       "src/**/*",
-      "assets/**/*",
-      "package.json"
+      "package.json",
+      "!**/*.map"
     ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "electronDownload": {
+      "cache": ".cache/electron"
+    },
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "tar.gz"
       ],
-      "category": "Network"
+      "category": "Network;WebBrowser",
+      "synopsis": "Chromium browser with user agent control and VPN integration",
+      "desktop": {
+        "entry": {
+          "Name": "Opsecium",
+          "StartupWMClass": "Opsecium"
+        }
+      }
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Opsecium",
+      "uninstallDisplayName": "Opsecium",
+      "deleteAppDataOnUninstall": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "darkModeSupport": true
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libsecret-1-0"
+      ]
     }
   }
 }
