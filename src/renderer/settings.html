@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self';">
+  <title>Opsecium settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <header>
+    <h1>Opsecium</h1>
+    <p class="version" id="version"></p>
+  </header>
+
+  <section>
+    <h2>User agent</h2>
+    <p class="hint">
+      The string and the client hints are changed together. A profile picked
+      here applies to every open tab straight away.
+    </p>
+
+    <label class="row">
+      <span>Profile</span>
+      <select id="ua-profile"></select>
+    </label>
+
+    <label class="row stacked" id="custom-row">
+      <span>Custom string</span>
+      <textarea id="ua-custom" rows="3" spellcheck="false"
+                placeholder="Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/27.0 Chrome/125.0.0.0 Mobile Safari/537.36"></textarea>
+    </label>
+
+    <label class="row">
+      <span>Match client hints</span>
+      <input type="checkbox" id="ua-hints">
+    </label>
+
+    <label class="row">
+      <span>Emulate screen and touch for mobile profiles</span>
+      <input type="checkbox" id="ua-device">
+    </label>
+
+    <label class="row">
+      <span>Accept-Language</span>
+      <input type="text" id="ua-lang" spellcheck="false">
+    </label>
+
+    <div class="preview" id="ua-preview"></div>
+  </section>
+
+  <section>
+    <h2>VPN</h2>
+
+    <label class="row">
+      <span>Mode</span>
+      <select id="vpn-mode">
+        <option value="off">Off</option>
+        <option value="pia">Private Internet Access</option>
+        <option value="proxy">SOCKS5 / HTTP proxy</option>
+      </select>
+    </label>
+
+    <div class="group" id="pia-group">
+      <label class="row">
+        <span>Region</span>
+        <select id="pia-region"><option value="auto">Automatic</option></select>
+      </label>
+      <label class="row">
+        <span>piactl path (leave blank to autodetect)</span>
+        <input type="text" id="pia-binary" spellcheck="false" placeholder="/opt/piavpn/bin/piactl">
+      </label>
+      <label class="row">
+        <span>Connect on launch</span>
+        <input type="checkbox" id="vpn-autoconnect">
+      </label>
+      <div class="row actions">
+        <button id="vpn-connect">Connect</button>
+        <button id="vpn-disconnect" class="secondary">Disconnect</button>
+      </div>
+    </div>
+
+    <div class="group" id="proxy-group">
+      <label class="row">
+        <span>Proxy URL</span>
+        <input type="text" id="proxy-url" spellcheck="false" placeholder="socks5://127.0.0.1:1080">
+      </label>
+      <label class="row">
+        <span>Bypass rules</span>
+        <input type="text" id="proxy-bypass" spellcheck="false" placeholder="&lt;local&gt;">
+      </label>
+    </div>
+
+    <label class="row">
+      <span>Kill switch &mdash; block all traffic when the tunnel is down</span>
+      <input type="checkbox" id="vpn-killswitch">
+    </label>
+
+    <div class="status" id="vpn-status"></div>
+  </section>
+
+  <section>
+    <h2>Privacy</h2>
+
+    <label class="row">
+      <span>Block known telemetry and analytics hosts</span>
+      <input type="checkbox" id="p-telemetry">
+    </label>
+    <label class="row">
+      <span>Stop WebRTC from leaking the local address</span>
+      <input type="checkbox" id="p-webrtc">
+    </label>
+    <label class="row">
+      <span>Disable the spell checker (it fetches dictionaries from Google)</span>
+      <input type="checkbox" id="p-spellcheck">
+    </label>
+    <label class="row">
+      <span>Send DNT and Sec-GPC</span>
+      <input type="checkbox" id="p-dnt">
+    </label>
+    <label class="row">
+      <span>Clear cookies, cache and storage on exit</span>
+      <input type="checkbox" id="p-clear">
+    </label>
+    <label class="row">
+      <span>Disable hardware acceleration (needs a restart)</span>
+      <input type="checkbox" id="p-hwaccel">
+    </label>
+
+    <label class="row stacked">
+      <span>Extra blocked hosts, one per line</span>
+      <textarea id="p-hosts" rows="4" spellcheck="false"></textarea>
+    </label>
+
+    <div class="row actions">
+      <button id="clear-now" class="secondary">Clear browsing data now</button>
+      <span class="counter" id="blocked-count"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>General</h2>
+    <label class="row">
+      <span>Homepage</span>
+      <input type="text" id="g-home" spellcheck="false">
+    </label>
+    <label class="row">
+      <span>Search engine (%s is the query)</span>
+      <input type="text" id="g-search" spellcheck="false">
+    </label>
+    <div class="row actions">
+      <button id="reset" class="danger">Reset everything to defaults</button>
+    </div>
+  </section>
+
+  <script src="settings.js"></script>
+</body>
+</html>
