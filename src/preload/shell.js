@@ -54,6 +54,8 @@ contextBridge.exposeInMainWorld('opsecium', {
     onChange: (handler) => on('settings:changed', handler)
   },
   privacy: {
-    clear: () => ipcRenderer.invoke('privacy:clear')
+    clear: () => ipcRenderer.invoke('privacy:clear'),
+    newIdentity: () => ipcRenderer.invoke('privacy:new-identity'),
+    timezones: () => ipcRenderer.invoke('privacy:timezones')
   }
 })

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Leak check</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      padding: 26px 24px 60px;
+      background: #12141a;
+      color: #dfe3ee;
+      font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    h1 { margin: 0 0 4px; font-size: 19px; }
+    .lede { margin: 0 0 20px; color: #8b93a8; max-width: 620px; }
+    section {
+      margin-bottom: 14px;
+      border: 1px solid #272b38;
+      border-radius: 10px;
+      background: #191c25;
+      overflow: hidden;
+    }
+    h2 {
+      margin: 0;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #8b93a8;
+      border-bottom: 1px solid #272b38;
+    }
+    .row {
+      display: flex;
+      gap: 14px;
+      padding: 7px 14px;
+      border-top: 1px solid rgba(255,255,255,.03);
+    }
+    .row:first-of-type { border-top: 0; }
+    .k { flex: 0 0 190px; color: #8b93a8; }
+    .v {
+      flex: 1;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .verdict { flex: 0 0 74px; text-align: right; font-weight: 600; font-size: 11px; letter-spacing: .04em; }
+    .good { color: #3ecf8e; }
+    .bad { color: #ef5f6b; }
+    .meh { color: #f0a742; }
+    footer { color: #626a80; font-size: 12px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Leak check</h1>
+  <p class="lede">
+    Everything below is measured in this page, with no network calls, so it is
+    what any site you visit would read. Run it after changing a profile to see
+    the change land.
+  </p>
+
+  <section><h2>Identity</h2><div id="identity"></div></section>
+  <section><h2>Hardware</h2><div id="hardware"></div></section>
+  <section><h2>Locale</h2><div id="locale"></div></section>
+  <section><h2>Fingerprint surfaces</h2><div id="surfaces"></div></section>
+  <section><h2>Network</h2><div id="network"></div></section>
+
+  <footer>
+    A stable hash that stays the same on two reads is the goal. A hash that
+    changes every read is as identifying as no protection at all, because no
+    real browser does that.
+  </footer>
+
+  <script>
+    const add = (host, key, value, verdict, note) => {
+      const row = document.createElement('div')
+      row.className = 'row'
+      const k = document.createElement('div')
+      k.className = 'k'
+      k.textContent = key
+      const v = document.createElement('div')
+      v.className = 'v'
+      v.textContent = value === undefined || value === null || value === '' ? '—' : String(value)
+      const s = document.createElement('div')
+      s.className = 'verdict ' + (verdict || '')
+      s.textContent = note || ''
+      row.append(k, v, s)
+      document.getElementById(host).append(row)
+    }
+
+    // fnv1a, only needs to be stable, not cryptographic
+    const digest = (input) => {
+      let h = 2166136261 >>> 0
+      for (let i = 0; i < input.length; i++) {
+        h ^= input.charCodeAt(i)
+        h = Math.imul(h, 16777619) >>> 0
+      }
+      return h.toString(16).padStart(8, '0')
+    }
+
+    // --- identity ---
+
+    add('identity', 'User-Agent', navigator.userAgent)
+    add('identity', 'navigator.platform', navigator.platform)
+    add('identity', 'navigator.vendor', navigator.vendor)
+    add('identity', 'window.chrome', typeof window.chrome === 'undefined' ? 'absent' : 'present')
+
+    const chromiumClaimed = /Chrom(e|ium)\//.test(navigator.userAgent)
+    add('identity', 'userAgentData', navigator.userAgentData ? 'exposed' : 'absent',
+      (!!navigator.userAgentData === chromiumClaimed) ? 'good' : 'bad',
+      (!!navigator.userAgentData === chromiumClaimed) ? 'matches' : 'mismatch')
+
+    if (navigator.userAgentData) {
+      add('identity', 'brands', navigator.userAgentData.brands.map((b) => b.brand + ' ' + b.version).join(', '))
+      navigator.userAgentData.getHighEntropyValues(['platformVersion', 'model', 'architecture', 'bitness', 'fullVersionList'])
+        .then((hints) => {
+          add('identity', 'platform version', hints.platformVersion)
+          add('identity', 'model', hints.model || '(none)')
+          add('identity', 'architecture', hints.architecture + '/' + hints.bitness)
+          const uaVersion = (navigator.userAgent.match(/Chrom(?:e|ium)\/(\d+)/) || [])[1]
+          const hintVersion = (hints.fullVersionList.find((b) => b.brand === 'Chromium') || {}).version
+          const agrees = hintVersion && uaVersion && hintVersion.split('.')[0] === uaVersion
+          add('identity', 'string vs hints', agrees ? 'agree' : 'disagree', agrees ? 'good' : 'bad', agrees ? 'consistent' : 'tell')
+        })
+    }
+
+    // --- hardware ---
+
+    add('hardware', 'cores', navigator.hardwareConcurrency)
+    add('hardware', 'memory (GB)', navigator.deviceMemory)
+    add('hardware', 'touch points', navigator.maxTouchPoints)
+    add('hardware', 'screen', screen.width + 'x' + screen.height + ' @' + window.devicePixelRatio + 'x')
+    add('hardware', 'viewport', window.innerWidth + 'x' + window.innerHeight)
+
+    const mobileClaimed = /Mobile|Android|iPhone/i.test(navigator.userAgent)
+    const touchAgrees = mobileClaimed === (navigator.maxTouchPoints > 0)
+    add('hardware', 'mobile vs touch', touchAgrees ? 'agree' : 'disagree', touchAgrees ? 'good' : 'bad', touchAgrees ? 'consistent' : 'tell')
+
+    // --- locale ---
+
+    add('locale', 'timezone', Intl.DateTimeFormat().resolvedOptions().timeZone)
+    add('locale', 'UTC offset (min)', new Date().getTimezoneOffset())
+    add('locale', 'navigator.language', navigator.language)
+    add('locale', 'navigator.languages', navigator.languages.join(', '))
+    add('locale', 'DNT / GPC', (navigator.doNotTrack || 'unset') + ' / ' + (navigator.globalPrivacyControl === undefined ? 'unset' : navigator.globalPrivacyControl))
+
+    // --- fingerprint surfaces ---
+
+    const drawCanvas = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 220
+      canvas.height = 60
+      const ctx = canvas.getContext('2d')
+      ctx.textBaseline = 'top'
+      ctx.font = '16px "Arial"'
+      ctx.fillStyle = '#f60'
+      ctx.fillRect(2, 2, 90, 24)
+      ctx.fillStyle = '#069'
+      ctx.fillText('Opsecium <canvas> 1.0', 4, 26)
+      ctx.fillStyle = 'rgba(102, 204, 0, 0.7)'
+      ctx.fillText('Opsecium <canvas> 1.0', 6, 34)
+      return canvas.toDataURL()
+    }
+
+    const first = digest(drawCanvas())
+    const second = digest(drawCanvas())
+    add('surfaces', 'canvas hash', first)
+    add('surfaces', 'canvas, read again', second,
+      first === second ? 'good' : 'bad',
+      first === second ? 'stable' : 'unstable')
+
+    try {
+      const gl = document.createElement('canvas').getContext('webgl')
+      const info = gl.getExtension('WEBGL_debug_renderer_info')
+      add('surfaces', 'webgl vendor', info ? gl.getParameter(info.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR))
+      add('surfaces', 'webgl renderer', info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER))
+    } catch (err) {
+      add('surfaces', 'webgl', 'unavailable', 'meh', '')
+    }
+
+    const audioHash = async () => {
+      const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext
+      if (!Ctx) return null
+      const ctx = new Ctx(1, 5000, 44100)
+      const osc = ctx.createOscillator()
+      osc.type = 'triangle'
+      osc.frequency.value = 10000
+      const compressor = ctx.createDynamicsCompressor()
+      osc.connect(compressor)
+      compressor.connect(ctx.destination)
+      osc.start(0)
+      const buffer = await ctx.startRendering()
+      const data = buffer.getChannelData(0)
+      let sum = 0
+      for (let i = 0; i < data.length; i++) sum += Math.abs(data[i])
+      return sum.toString()
+    }
+
+    Promise.all([audioHash(), audioHash()]).then(([a, b]) => {
+      if (a === null) { add('surfaces', 'audio', 'unavailable', 'meh', ''); return }
+      add('surfaces', 'audio hash', digest(a))
+      add('surfaces', 'audio, read again', digest(b), a === b ? 'good' : 'bad', a === b ? 'stable' : 'unstable')
+    }).catch(() => add('surfaces', 'audio', 'unavailable', 'meh', ''))
+
+    const metrics = document.createElement('canvas').getContext('2d')
+    metrics.font = '14px sans-serif'
+    add('surfaces', 'text width', metrics.measureText('mmmmmmmmmmlli').width.toFixed(6))
+
+    // --- network ---
+
+    const rtc = window.RTCPeerConnection || window.webkitRTCPeerConnection
+    if (!rtc) {
+      add('network', 'WebRTC', 'unavailable', 'good', 'no leak')
+    } else {
+      const found = new Set()
+      try {
+        const pc = new rtc({ iceServers: [] })
+        pc.createDataChannel('x')
+        pc.onicecandidate = (event) => {
+          if (!event.candidate) {
+            const hosts = [...found].filter((c) => !c.endsWith('.local'))
+            add('network', 'WebRTC candidates', hosts.length ? hosts.join(', ') : 'none exposed',
+              hosts.length ? 'bad' : 'good', hosts.length ? 'leaking' : 'no leak')
+            return
+          }
+          const match = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{8}-[a-f0-9-]+\.local)/i.exec(event.candidate.candidate)
+          if (match) found.add(match[1])
+        }
+        pc.createOffer().then((offer) => pc.setLocalDescription(offer))
+        setTimeout(() => {
+          if (!document.querySelector('#network .row:nth-child(2)')) {
+            add('network', 'WebRTC candidates', 'none gathered', 'good', 'no leak')
+          }
+        }, 2500)
+      } catch (err) {
+        add('network', 'WebRTC', 'blocked', 'good', 'no leak')
+      }
+    }
+
+    add('network', 'protocol', location.protocol.replace(':', ''))
+    add('network', 'cookies enabled', navigator.cookieEnabled)
+  </script>
+</body>
+</html>

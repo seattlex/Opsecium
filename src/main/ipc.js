@@ -4,6 +4,7 @@ const { ipcMain, app } = require('electron')
 
 const useragent = require('./useragent')
 const spoof = require('./spoof')
+const fingerprint = require('./fingerprint')
 const urls = require('./urls')
 const sessions = require('./session')
 const windows = require('./window')
@@ -14,7 +15,11 @@ function register ({ settings, vpn, getIdentity, refreshIdentity }) {
   // The page preload asks for this synchronously so the shim is in place
   // before any page script runs.
   ipcMain.on('opsecium:page-config', (event) => {
-    event.returnValue = spoof.pageShimConfig(getIdentity())
+    const identity = getIdentity()
+    event.returnValue = {
+      ...spoof.pageShimConfig(identity),
+      fingerprint: fingerprint.configFor(identity, settings)
+    }
   })
 
   ipcMain.handle('tabs:new', (_e, url) => { tabs()?.create(url); return true })
@@ -134,6 +139,21 @@ function register ({ settings, vpn, getIdentity, refreshIdentity }) {
     await sessions.clearBrowsingData()
     return true
   })
+
+  // Everything that ties this session to the last one, in one action: storage
+  // gone, fingerprint seed rotated, open tabs replaced.
+  ipcMain.handle('privacy:new-identity', async () => {
+    fingerprint.rotateSeed()
+    await sessions.clearBrowsingData()
+    const manager = tabs()
+    if (manager) {
+      for (const tab of manager.tabs.slice()) manager.close(tab.id)
+    }
+    windows.broadcastAll('identity:changed', getIdentity())
+    return true
+  })
+
+  ipcMain.handle('privacy:timezones', () => fingerprint.TIMEZONES)
 }
 
 module.exports = { register }

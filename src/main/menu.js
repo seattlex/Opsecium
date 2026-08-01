@@ -4,6 +4,7 @@ const { Menu, app } = require('electron')
 
 const windows = require('./window')
 const sessions = require('./session')
+const fingerprint = require('./fingerprint')
 
 function build ({ settings, vpn }) {
   const tabs = () => windows.getTabManager()
@@ -45,6 +46,21 @@ function build ({ settings, vpn }) {
     {
       label: 'Privacy',
       submenu: [
+        {
+          label: 'New identity',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: async () => {
+            fingerprint.rotateSeed()
+            await sessions.clearBrowsingData()
+            const manager = tabs()
+            if (manager) for (const tab of manager.tabs.slice()) manager.close(tab.id)
+          }
+        },
+        {
+          label: 'Leak check',
+          click: () => tabs()?.create('opsecium://leaks')
+        },
+        { type: 'separator' },
         {
           label: 'Clear browsing data',
           click: async () => { await sessions.clearBrowsingData() }
