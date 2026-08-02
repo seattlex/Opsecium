@@ -56,6 +56,13 @@ contextBridge.exposeInMainWorld('opsecium', {
   privacy: {
     clear: () => ipcRenderer.invoke('privacy:clear'),
     newIdentity: () => ipcRenderer.invoke('privacy:new-identity'),
-    timezones: () => ipcRenderer.invoke('privacy:timezones')
+    timezones: () => ipcRenderer.invoke('privacy:timezones'),
+    wipeAndQuit: () => ipcRenderer.invoke('privacy:wipe-and-quit')
+  },
+  lock: {
+    attempt: (passphrase) => ipcRenderer.invoke('lock:attempt', passphrase),
+    now: () => ipcRenderer.invoke('lock:now'),
+    state: () => ipcRenderer.invoke('lock:state'),
+    setPassphrase: (current, next) => ipcRenderer.invoke('lock:set-passphrase', { current, next })
   }
 })

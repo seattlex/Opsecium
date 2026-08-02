@@ -9,6 +9,7 @@ const sessions = require('./session')
 const windows = require('./window')
 const ipc = require('./ipc')
 const menu = require('./menu')
+const lock = require('./lock')
 const { VpnManager } = require('./vpn/manager')
 
 settings.load()
@@ -40,6 +41,16 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
+    // A sealed settings file has to open before anything else happens. The
+    // startup switches above already ran on defaults, which are the careful
+    // ones, so nothing unsafe is in force while we wait.
+    if (settings.locked) {
+      ipc.registerLockOnly()
+      await lock.requireUnlock()
+      if (settings.locked) return // the window was closed, we are quitting
+      identity = useragent.resolve(settings)
+    }
+
     sessions.registerInternalPages()
     sessions.setupSession({ settings, vpn, getIdentity })
 
@@ -49,6 +60,9 @@ if (!app.requestSingleInstanceLock()) {
     ipc.register({ settings, vpn, getIdentity, refreshIdentity })
     menu.build({ settings, vpn })
     windows.createWindow({ settings, getIdentity })
+
+    // Locking hides every window; unlocking brings them back.
+    lock.watchIdle(settings, (isLocked) => windows.setHidden(isLocked))
 
     app.on('activate', () => {
       if (!windows.getMainWindow()) windows.createWindow({ settings, getIdentity })

@@ -1,13 +1,23 @@
 'use strict'
 
-const { ipcMain, app } = require('electron')
+const { ipcMain, app, clipboard } = require('electron')
 
 const useragent = require('./useragent')
 const spoof = require('./spoof')
 const fingerprint = require('./fingerprint')
+const lock = require('./lock')
 const urls = require('./urls')
 const sessions = require('./session')
 const windows = require('./window')
+
+// The unlock window comes up before the rest of the app exists, so its one
+// handler is registered on its own first.
+let lockRegistered = false
+function registerLockOnly () {
+  if (lockRegistered) return
+  lockRegistered = true
+  ipcMain.handle('lock:attempt', (_e, passphrase) => lock.attempt(passphrase))
+}
 
 function register ({ settings, vpn, getIdentity, refreshIdentity }) {
   const tabs = () => windows.getTabManager()
@@ -154,6 +164,41 @@ function register ({ settings, vpn, getIdentity, refreshIdentity }) {
   })
 
   ipcMain.handle('privacy:timezones', () => fingerprint.TIMEZONES)
+
+  // Panic. Clears the session and the clipboard, then quits. It does not
+  // touch your settings - losing those is not what anyone means by panic.
+  ipcMain.handle('privacy:wipe-and-quit', async () => {
+    try {
+      await sessions.clearBrowsingData()
+    } finally {
+      clipboard.clear()
+      app.exit(0)
+    }
+    return true
+  })
+
+  registerLockOnly()
+  ipcMain.handle('lock:now', () => lock.lockNow(settings))
+  ipcMain.handle('lock:state', () => ({
+    locked: lock.isLocked(),
+    canLock: lock.canLock(),
+    encrypted: settings.encrypted
+  }))
+
+  ipcMain.handle('lock:set-passphrase', async (_e, { current, next }) => {
+    // changing or removing one has to prove you know the old one
+    if (lock.canLock()) {
+      const check = await lock.attempt(current)
+      if (!check.ok) return { ok: false, error: 'the current passphrase is wrong' }
+    }
+    try {
+      await settings.setPassphrase(next || null)
+      await lock.rememberVerifier(next || null)
+      return { ok: true, encrypted: settings.encrypted }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  })
 }
 
-module.exports = { register }
+module.exports = { register, registerLockOnly }

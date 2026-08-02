@@ -1,10 +1,11 @@
 'use strict'
 
-const { Menu, app } = require('electron')
+const { Menu, app, clipboard, dialog } = require('electron')
 
 const windows = require('./window')
 const sessions = require('./session')
 const fingerprint = require('./fingerprint')
+const lock = require('./lock')
 
 function build ({ settings, vpn }) {
   const tabs = () => windows.getTabManager()
@@ -60,10 +61,36 @@ function build ({ settings, vpn }) {
           label: 'Leak check',
           click: () => tabs()?.create('opsecium://leaks')
         },
+        {
+          label: 'Lock now',
+          accelerator: 'CmdOrCtrl+Shift+L',
+          click: () => {
+            if (!lock.lockNow(settings)) {
+              dialog.showMessageBox({
+                type: 'info',
+                title: 'No passphrase set',
+                message: 'Locking needs a passphrase.',
+                detail: 'Set one under Confidentiality in settings. Without it there would be nothing to unlock with.'
+              })
+            }
+          }
+        },
         { type: 'separator' },
         {
           label: 'Clear browsing data',
           click: async () => { await sessions.clearBrowsingData() }
+        },
+        {
+          label: 'Wipe and quit',
+          accelerator: 'CmdOrCtrl+Shift+Backspace',
+          click: async () => {
+            try {
+              await sessions.clearBrowsingData()
+            } finally {
+              clipboard.clear()
+              app.exit(0)
+            }
+          }
         },
         {
           label: 'Kill switch',
