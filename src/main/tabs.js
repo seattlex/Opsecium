@@ -4,7 +4,7 @@ const path = require('node:path')
 const { WebContentsView, shell } = require('electron')
 
 const spoof = require('./spoof')
-const { PARTITION } = require('./session')
+const { partition } = require('./session')
 
 const CHROME_HEIGHT = 84
 const PAGE_PRELOAD = path.join(__dirname, '..', 'preload', 'page.js')
@@ -17,7 +17,7 @@ class Tab {
     this.manager = manager
     this.view = new WebContentsView({
       webPreferences: {
-        partition: PARTITION,
+        partition: partition(),
         preload: PAGE_PRELOAD,
         contextIsolation: true,
         nodeIntegration: false,

@@ -107,7 +107,7 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({
     show: false,
     webPreferences: {
-      partition: sessions.PARTITION,
+      partition: sessions.partition(),
       preload: path.join(__dirname, '..', 'src', 'preload', 'page.js'),
       contextIsolation: true,
       sandbox: true

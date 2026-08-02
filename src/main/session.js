@@ -8,7 +8,23 @@ const spoof = require('./spoof')
 const { upgradeToHttps, isCrossOrigin } = require('./urls')
 const { Blocklist } = require('./blocklist')
 
+// Without the persist: prefix Chromium keeps the whole partition in memory -
+// no cookie jar, no cache, no local storage, nothing to recover afterwards.
+// Which one is in use is decided once at startup and cannot change under a
+// running session, so the setting takes effect on the next launch.
 const PARTITION = 'persist:opsecium'
+const EPHEMERAL_PARTITION = 'opsecium-ephemeral'
+
+let activePartition = PARTITION
+
+function partition () {
+  return activePartition
+}
+
+function selectPartition (settings) {
+  activePartition = settings.get('privacy.ephemeral') ? EPHEMERAL_PARTITION : PARTITION
+  return activePartition
+}
 
 // Permissions that get handed out without asking are the ones that cannot
 // identify you. Everything else goes to a prompt, and the noisy sensors are
@@ -30,7 +46,7 @@ const ALWAYS_ALLOW = new Set(['fullscreen', 'clipboard-sanitized-write'])
 let blocklist = null
 
 function browsingSession () {
-  return session.fromPartition(PARTITION)
+  return session.fromPartition(activePartition)
 }
 
 function registerSchemePrivileges () {
@@ -55,6 +71,7 @@ function registerInternalPages () {
 }
 
 function setupSession ({ settings, vpn, getIdentity }) {
+  selectPartition(settings)
   const ses = browsingSession()
   blocklist = new Blocklist(settings)
 
@@ -166,6 +183,9 @@ async function clearBrowsingData () {
 
 module.exports = {
   PARTITION,
+  EPHEMERAL_PARTITION,
+  partition,
+  selectPartition,
   browsingSession,
   registerSchemePrivileges,
   registerInternalPages,

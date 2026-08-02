@@ -76,6 +76,16 @@ function applyHardeningSwitches (app, settings) {
     app.disableHardwareAcceleration()
   }
 
+  // In ephemeral mode the partition is already in memory, but Chromium keeps
+  // some caches on disk regardless of the session. Sizing them to nothing is
+  // the only way to stop page content being written out.
+  if (settings.get('privacy.ephemeral')) {
+    app.commandLine.appendSwitch('disk-cache-size', '1')
+    app.commandLine.appendSwitch('media-cache-size', '1')
+    app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
+    app.commandLine.appendSwitch('disable-gpu-program-cache')
+  }
+
   // Send origins rather than full paths in Referer, cross origin.
   if (settings.get('privacy.trimReferrers')) {
     app.commandLine.appendSwitch('enable-features', 'ReducedReferrerGranularity')
