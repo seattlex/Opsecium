@@ -3,6 +3,11 @@
 Being honest about this matters more than the feature list. Opsecium is built
 against a specific set of problems, and there are plenty it does nothing about.
 
+Opsecium is aimed at two things that get spoken about as one. **Privacy** is
+not being followed while you browse. **Confidentiality** is what could be
+recovered from the machine afterwards. A browser can be good at one and
+useless at the other, so they are listed separately below.
+
 ## What it is for
 
 **A site or a script trying to work out what browser and device you are on.**
@@ -42,6 +47,19 @@ changes both. The consistency is the point - noise that changes on every read
 is a stronger signal than no noise at all, since no real browser behaves that
 way.
 
+**Someone getting the machine later.** Handled as far as an application can.
+An ephemeral session writes no cookie jar, cache or storage at all, and the
+settings file can be sealed with a passphrase so the proxy, the custom user
+agent and the host list are not readable by anything running as you. The
+sealed file is authenticated, so an altered one fails to open rather than
+opening wrong.
+
+**Someone reading over your shoulder, or recording it.** Partly handled. The
+window and the passphrase prompt both ask to be excluded from screen capture,
+and locking hides them and drops the passphrase from memory. This is a
+compositor flag on Windows and macOS; on Linux it does nothing, and a camera
+defeats it everywhere.
+
 ## What it is not for
 
 **Anonymity.** This is not Tor Browser and does not try to be. There is no
@@ -61,9 +79,21 @@ Noise is also a trade. A site that hashes a canvas to detect fraud may decide
 you are suspicious. That is the cost of not being trackable by the same
 mechanism, and it is one checkbox away if a site you need breaks.
 
-**A hostile local machine.** Settings live in a plain JSON file in the user
-data directory, mode 0600. Anything with your user account can read it. There
-are no secrets in it, but there is a proxy URL.
+**A machine seized while unlocked.** If the browser is open and unlocked, the
+passphrase is in memory and the ephemeral session is in memory, and anything
+that can read the process can read both. Locking is what narrows that window,
+which is why it also drops the passphrase rather than just hiding the screen.
+Nothing here defends against a machine taken mid-session with the screen up.
+
+**Disk forensics beyond our own files.** Ephemeral mode stops the browser
+writing a cookie jar or a cache, but it cannot stop the operating system. Swap,
+hibernation images, crash dumps and filesystem journals are all outside what an
+application can reach. Full disk encryption and a swap policy are the answer
+there, not a browser setting.
+
+**A passphrase you can guess.** scrypt at these parameters makes offline
+guessing expensive per attempt, and that is all it does. It does not rescue a
+short passphrase.
 
 **Network level observation.** Your ISP sees a VPN connection. Whoever runs the
 exit sees your traffic. That is the trade every VPN makes and Opsecium does not
@@ -103,3 +133,9 @@ Electron's extension support is partial anyway.
   output rather than reading the vendor string sees a desktop.
 - Nothing is code signed, so first run warnings are expected on Windows and
   macOS.
+- Screen capture protection does nothing on Linux - there is no equivalent
+  flag for X11 or Wayland compositors.
+- Ephemeral mode and the passphrase are all or nothing. There is no per site
+  or per tab container yet.
+- Locking hides the windows and drops the passphrase, but page content stays
+  in the renderer processes. It is a lock, not a shutdown.

@@ -1,7 +1,12 @@
 # Opsecium
 
-A Chromium browser that lets you decide what it says about you, routes through
-a VPN, and does not talk to anyone you did not ask it to talk to.
+A Chromium browser for privacy and confidentiality: you decide what it says
+about you, it routes through a VPN, it does not talk to anyone you did not ask
+it to talk to, and it leaves nothing readable behind.
+
+Those are two different jobs and the browser does both. Privacy is about not
+being followed while you browse. Confidentiality is about what could be
+recovered from the machine afterwards, by someone who has it.
 
 Built on Electron, so the engine is real Chromium - pages render the way they
 render everywhere else. What is different is everything around the engine.
@@ -81,6 +86,39 @@ closed: an error talking to `piactl` counts as "not connected".
 PIA is not bundled - it is proprietary and needs your own subscription. Install
 the client, sign in once, and Opsecium picks it up from there.
 
+## Confidentiality
+
+Everything above is about the network. This part is about the disk and the
+screen in front of you.
+
+**Ephemeral sessions.** The whole partition lives in memory - no cookie jar,
+no cache, no local storage, nothing written out to be recovered. The disk and
+media caches are sized to nothing at startup as well, because Chromium keeps
+some of those outside the session. Verified by test: an ephemeral session
+writes no cookie storage where a persistent one does.
+
+**Encrypted settings.** With a passphrase set, `settings.json` becomes a
+sealed file - scrypt at 128 MB for the key, AES-256-GCM for the contents, the
+header authenticated along with the body so nobody can downgrade the
+parameters on a file you would then trust. Your proxy, your custom user agent
+and your host list stop being world readable to anything running as you. A
+restart comes up sealed and boots on defaults until it opens, and the defaults
+are the careful ones. There is no recovery: forget the passphrase and the file
+is gone.
+
+**Locking.** After a set idle time, or on suspend, or on `Ctrl+Shift+L`, the
+windows hide and the passphrase leaves memory entirely. What stays behind is a
+small sealed verifier, so getting back in means deriving the key again - there
+is no plaintext passphrase sitting in the process to be read out of it.
+
+**Screen capture.** The window asks the compositor to stay out of recordings
+and capture APIs, on Windows and macOS. So does the passphrase prompt. It is a
+flag, not a guarantee: a camera pointed at the screen still works.
+
+**Wipe and quit** (`Ctrl+Shift+Backspace`) clears cookies, cache, storage and
+the clipboard, then exits. It deliberately leaves your settings alone - losing
+those is not what anyone means by panic.
+
 ## Fingerprinting
 
 A user agent nobody can contradict is only half the job. The values that
@@ -142,13 +180,15 @@ npm start
 ```
 
 Tests cover the parts worth being sure about - user agent derivation, header
-rewriting, fingerprint config, the blocklist and address bar parsing. The
-smoke check boots the browser for real and asserts on what a server receives
-and what the page can read:
+rewriting, the vault crypto, fingerprint config, the blocklist and address bar
+parsing. The two smoke checks boot the browser for real: one asserts on what a
+server receives and what the page can read, the other on what ends up on the
+disk.
 
 ```sh
 npm test
 npm run smoke
+npm run smoke:disk
 ```
 
 Packaging is in [docs/BUILDING.md](docs/BUILDING.md).
@@ -163,6 +203,8 @@ Packaging is in [docs/BUILDING.md](docs/BUILDING.md).
 | `Ctrl+R` | reload (`Ctrl+Shift+R` ignores cache) |
 | `Ctrl+,` | settings |
 | `Ctrl+Shift+N` | new identity |
+| `Ctrl+Shift+L` | lock |
+| `Ctrl+Shift+Backspace` | wipe session and quit |
 | `F12` | devtools |
 
 ## What this is not
