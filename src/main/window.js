@@ -24,6 +24,11 @@ function createWindow ({ settings, getIdentity }) {
     show: false
   })
 
+  // Keeps the window out of screen recordings and most capture APIs on
+  // Windows and macOS. It is a compositor flag, not a guarantee - a camera
+  // pointed at the screen still works.
+  win.setContentProtection(!!settings.get('privacy.blockScreenCapture'))
+
   const shellView = new WebContentsView({
     webPreferences: {
       preload: SHELL_PRELOAD,
@@ -78,6 +83,21 @@ function openSettings () {
   return settingsWindow
 }
 
+// Locking hides the window outright rather than covering it. A view on top
+// can be raced or screenshotted underneath; a hidden window cannot.
+function setHidden (hidden) {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (hidden) mainWindow.hide()
+  else {
+    mainWindow.show()
+    mainWindow.focus()
+  }
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (hidden) settingsWindow.hide()
+    else settingsWindow.show()
+  }
+}
+
 function getTabManager () {
   return tabManager
 }
@@ -93,4 +113,4 @@ function broadcastAll (channel, payload) {
   for (const contents of targets) contents.send(channel, payload)
 }
 
-module.exports = { createWindow, openSettings, getTabManager, getMainWindow, broadcastAll, CHROME_HEIGHT }
+module.exports = { createWindow, openSettings, getTabManager, getMainWindow, setHidden, broadcastAll, CHROME_HEIGHT }
