@@ -5,6 +5,8 @@ const path = require('node:path')
 const { app } = require('electron')
 const { EventEmitter } = require('node:events')
 
+const vault = require('./vault')
+
 const DEFAULTS = {
   general: {
     homepage: 'opsecium://newtab',
@@ -56,7 +58,15 @@ const DEFAULTS = {
     // strip the referrer on cross origin requests entirely
     stripCrossOriginReferrer: true,
     // '' uses the system resolver, otherwise a DoH template
-    dohTemplate: ''
+    dohTemplate: '',
+    // nothing touches the disk: no cookie jar, no cache, no history
+    ephemeral: false,
+    // ask the compositor to keep this window out of screen captures
+    blockScreenCapture: true,
+    // minutes of no input before the window locks, 0 is off. needs a passphrase
+    lockAfterMinutes: 0,
+    // wipe the clipboard when locking, wiping or quitting
+    clearClipboard: true
   }
 }
 
@@ -83,25 +93,94 @@ class Store extends EventEmitter {
     super()
     this.data = clone(DEFAULTS)
     this.file = null
+    // held only while the app is running, never written anywhere
+    this.passphrase = null
+    this.encrypted = false
+    this.locked = false
   }
 
+  // Synchronous, because the startup switches need settings before the app is
+  // ready. An encrypted store cannot be read here - it reports locked and the
+  // caller unlocks it once there is a window to ask in.
   load () {
     this.file = path.join(app.getPath('userData'), 'settings.json')
+    let raw
     try {
-      const raw = fs.readFileSync(this.file, 'utf8')
-      this.data = merge(DEFAULTS, JSON.parse(raw))
+      raw = fs.readFileSync(this.file, 'utf8')
     } catch (err) {
       if (err.code !== 'ENOENT') console.error('[store] unreadable settings file, using defaults:', err.message)
+      this.data = clone(DEFAULTS)
+      return this.data
+    }
+
+    if (vault.isVault(raw)) {
+      this.encrypted = true
+      this.locked = true
+      this.sealed = raw
+      // defaults until unlocked, and the defaults are the careful ones
+      this.data = clone(DEFAULTS)
+      return this.data
+    }
+
+    try {
+      this.data = merge(DEFAULTS, JSON.parse(raw))
+    } catch (err) {
+      console.error('[store] settings file is not valid json, using defaults:', err.message)
       this.data = clone(DEFAULTS)
     }
     return this.data
   }
 
+  async unlock (passphrase) {
+    if (!this.locked) return true
+    const plaintext = await vault.open(this.sealed, passphrase)
+    this.data = merge(DEFAULTS, JSON.parse(plaintext))
+    this.passphrase = passphrase
+    this.locked = false
+    this.sealed = null
+    this.emit('changed', null, this.data)
+    return true
+  }
+
+  // Turning a passphrase on rewrites the file encrypted; passing null takes
+  // it back off. Either way the old file is replaced, not left beside it.
+  async setPassphrase (passphrase) {
+    this.passphrase = passphrase || null
+    this.encrypted = !!passphrase
+    await this.saveAsync()
+    return this.encrypted
+  }
+
   save () {
+    // An encrypted store cannot be written synchronously - scrypt is
+    // deliberately slow and blocking the main process for it would freeze the
+    // window on every keystroke in settings.
+    if (this.encrypted) {
+      this.saveAsync().catch((err) => console.error('[store] could not seal settings:', err.message))
+      return
+    }
+    this.writeFile(JSON.stringify(this.data, null, 2))
+  }
+
+  async saveAsync () {
+    if (!this.file) return
+    const plaintext = JSON.stringify(this.data, null, 2)
+    if (!this.encrypted || !this.passphrase) {
+      this.writeFile(plaintext)
+      return
+    }
+    this.writeFile(await vault.seal(plaintext, this.passphrase))
+  }
+
+  writeFile (contents) {
     if (!this.file) return
     try {
       fs.mkdirSync(path.dirname(this.file), { recursive: true })
-      fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2), { mode: 0o600 })
+      // write beside it and rename, so a crash mid write cannot leave a
+      // half sealed file that will never open again
+      const temporary = this.file + '.tmp'
+      fs.writeFileSync(temporary, contents, { mode: 0o600 })
+      fs.renameSync(temporary, this.file)
     } catch (err) {
       console.error('[store] could not write settings:', err.message)
     }
