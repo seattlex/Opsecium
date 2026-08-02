@@ -21,5 +21,8 @@ jobs:
       - name: unit tests
         run: npm test
 
-      - name: the app starts and paints
+      - name: identity lands on the wire and in the page
         run: xvfb-run -a npm run smoke
+
+      - name: nothing readable is left on the disk
+        run: xvfb-run -a npm run smoke:disk

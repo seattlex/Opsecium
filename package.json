@@ -19,6 +19,7 @@
     "dev": "electron . --dev",
     "test": "node --test test/*.test.js",
     "smoke": "electron test/smoke.js",
+    "smoke:disk": "electron test/confidentiality.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:linux": "electron-builder --linux",
