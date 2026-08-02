@@ -136,5 +136,25 @@ button:hover { filter: brightness(1.08); }
 
 .counter { color: var(--muted); font-size: 12px; }
 
+.row > span small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.pass-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+}
+
+.pass-grid input { width: 100%; }
+
+.note { margin: 8px 0 0; color: var(--muted); font-size: 11.5px; }
+
+#c-state { color: var(--ok); }
+#c-state.off { color: var(--muted); }
+
 .group { display: none; }
 .group.visible { display: block; }

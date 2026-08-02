@@ -46,6 +46,7 @@ async function boot () {
   fill(current)
   renderVpn(info.vpn)
   await preview()
+  await renderLockState()
   loadRegions()
 }
 
@@ -76,6 +77,11 @@ function fill (s) {
   $('p-referrer').checked = s.privacy.stripCrossOriginReferrer
   $('p-doh').value = s.privacy.dohTemplate
   $('p-timezone').value = s.privacy.timezone
+
+  $('c-ephemeral').checked = s.privacy.ephemeral
+  $('c-capture').checked = s.privacy.blockScreenCapture
+  $('c-clipboard').checked = s.privacy.clearClipboard
+  $('c-lockafter').value = String(s.privacy.lockAfterMinutes)
 
   $('g-home').value = s.general.homepage
   $('g-search').value = s.general.searchEngine
@@ -125,7 +131,11 @@ function collect () {
       httpsOnly: $('p-https').checked,
       stripCrossOriginReferrer: $('p-referrer').checked,
       dohTemplate: $('p-doh').value.trim(),
-      timezone: $('p-timezone').value
+      timezone: $('p-timezone').value,
+      ephemeral: $('c-ephemeral').checked,
+      blockScreenCapture: $('c-capture').checked,
+      clearClipboard: $('c-clipboard').checked,
+      lockAfterMinutes: Number($('c-lockafter').value) || 0
     },
     general: {
       homepage: $('g-home').value.trim() || 'opsecium://newtab',
@@ -221,7 +231,8 @@ async function loadRegions () {
 
 for (const id of ['ua-hints', 'ua-device', 'vpn-killswitch', 'vpn-autoconnect', 'p-telemetry',
   'p-webrtc', 'p-spellcheck', 'p-dnt', 'p-clear', 'p-hwaccel', 'p-resist', 'p-webgl',
-  'p-https', 'p-referrer', 'p-timezone']) {
+  'p-https', 'p-referrer', 'p-timezone', 'c-ephemeral', 'c-capture', 'c-clipboard',
+  'c-lockafter']) {
   $(id).addEventListener('change', save)
 }
 
@@ -246,6 +257,44 @@ $('clear-now').onclick = async () => {
   await api.privacy.clear()
   button.textContent = 'Cleared'
   setTimeout(() => { button.textContent = 'Clear browsing data now'; button.disabled = false }, 1500)
+}
+
+async function renderLockState () {
+  const state = await api.lock.state()
+  const label = $('c-state')
+  label.textContent = state.encrypted ? '· set, settings are encrypted' : '· not set'
+  label.classList.toggle('off', !state.encrypted)
+  $('c-current').disabled = !state.encrypted
+  $('c-current').placeholder = state.encrypted ? 'Current passphrase' : 'No passphrase set'
+  $('c-lockafter').disabled = !state.encrypted
+  return state
+}
+
+$('c-apply').onclick = async () => {
+  const button = $('c-apply')
+  const note = $('c-note')
+  button.disabled = true
+  button.textContent = 'Working'
+
+  const result = await api.lock.setPassphrase($('c-current').value, $('c-next').value)
+
+  button.disabled = false
+  button.textContent = 'Apply'
+  $('c-current').value = ''
+  $('c-next').value = ''
+
+  if (result.ok) {
+    note.textContent = result.encrypted
+      ? 'Settings are encrypted. Locking is available now.'
+      : 'Passphrase removed. The settings file is plain json again.'
+  } else {
+    note.textContent = result.error
+  }
+  await renderLockState()
+}
+
+$('c-wipe').onclick = async () => {
+  await api.privacy.wipeAndQuit()
 }
 
 $('new-identity').onclick = async () => {

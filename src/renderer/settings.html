@@ -99,6 +99,62 @@
   </section>
 
   <section>
+    <h2>Confidentiality</h2>
+    <p class="hint">
+      Privacy is about not being followed. This part is about what could be
+      recovered from the machine afterwards, by someone who has it.
+    </p>
+
+    <label class="row">
+      <span>
+        Ephemeral session &mdash; keep everything in memory
+        <small>No cookie jar, cache or storage on disk. Takes effect on restart.</small>
+      </span>
+      <input type="checkbox" id="c-ephemeral">
+    </label>
+
+    <label class="row">
+      <span>Keep the window out of screen recordings</span>
+      <input type="checkbox" id="c-capture">
+    </label>
+
+    <label class="row">
+      <span>Wipe the clipboard when locking or quitting</span>
+      <input type="checkbox" id="c-clipboard">
+    </label>
+
+    <label class="row">
+      <span>Lock after inactivity</span>
+      <select id="c-lockafter">
+        <option value="0">Never</option>
+        <option value="1">1 minute</option>
+        <option value="5">5 minutes</option>
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="60">1 hour</option>
+      </select>
+    </label>
+
+    <div class="row stacked">
+      <span>Passphrase <small id="c-state"></small></span>
+      <div class="pass-grid">
+        <input type="password" id="c-current" placeholder="Current passphrase" autocomplete="off">
+        <input type="password" id="c-next" placeholder="New passphrase (blank removes it)" autocomplete="off">
+        <button id="c-apply" class="secondary">Apply</button>
+      </div>
+      <p class="note" id="c-note">
+        Encrypts the settings file with scrypt and AES-256-GCM, and turns on
+        locking. There is no recovery &mdash; forget it and the file is gone.
+      </p>
+    </div>
+
+    <div class="row actions">
+      <button id="c-wipe" class="danger">Wipe session and quit</button>
+      <span class="counter">Clears cookies, cache, storage and the clipboard, then exits</span>
+    </div>
+  </section>
+
+  <section>
     <h2>Fingerprinting</h2>
     <p class="hint">
       Canvas, audio and text measurements are perturbed with noise that is
