@@ -1,7 +1,7 @@
 {
   "name": "opsecium",
   "productName": "Opsecium",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Chromium browser with full user agent control, VPN integration and the telemetry stripped out",
   "license": "MIT",
   "author": "seattlex <kaspersolo3010@gmail.com>",
@@ -66,11 +66,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

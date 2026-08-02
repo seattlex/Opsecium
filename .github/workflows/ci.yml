@@ -18,6 +18,14 @@ jobs:
 
       - run: npm ci
 
+      # The runner ships the SUID helper unconfigured, and chromium would
+      # rather abort than start without a sandbox. Fixing the mode keeps the
+      # sandbox on, which is better than testing with --no-sandbox.
+      - name: let chromium use its sandbox
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+
       - name: unit tests
         run: npm test
 
